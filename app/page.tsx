@@ -101,7 +101,7 @@ function PaymentForm() {
         // Показываем галочку 2 секунды и редиректим на страницу профиля заказа
         setTimeout(() => {
           if (!orderId) return;
-          window.location.href = `${STORE_URL}/orders/${orderId}/profiles`;
+          window.location.href = `${STORE_URL}/orders/${orderId}`;
         }, 2000);
       } else {
         alert('Оплата не прошла. Возвращаем вас в корзину.');
