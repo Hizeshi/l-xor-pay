@@ -18,7 +18,7 @@ function PaymentForm() {
   const N8N_WEBHOOK_URL = 'https://iq-home.kz/webhook/payment/process';
 
     // URL твоего магазина (куда возвращать)
-  const STORE_URL = 'http://localhost:3000/orders';
+  const STORE_URL = 'http://localhost:3000';
 
   // --- Состояния полей ---
   const [cardNumber, setCardNumber] = useState('');
@@ -98,15 +98,16 @@ function PaymentForm() {
       // 2. Логика редиректа
       if (paymentStatus === 'success') {
         setStatus('success');
-        // Показываем галочку 2 секунды и редиректим в ЗАКАЗЫ
+        // Показываем галочку 2 секунды и редиректим на страницу профиля заказа
         setTimeout(() => {
-           window.location.href = `${STORE_URL}/profile`; // Или /orders, если есть такая страница
+          if (!orderId) return;
+          window.location.href = `${STORE_URL}/orders/${orderId}/profiles`;
         }, 2000);
       } else {
-        // Если ошибка — сразу возвращаем в КОРЗИНУ
         alert('Оплата не прошла. Возвращаем вас в корзину.');
         window.location.href = `${STORE_URL}/cart`;
       }
+
       
     } catch (e) {
       console.error(e);
