@@ -18,7 +18,7 @@ function PaymentForm() {
   const N8N_WEBHOOK_URL = 'https://iq-home.kz/webhook/payment/process';
 
     // URL твоего магазина (куда возвращать)
-  const STORE_URL = 'https://iq-home.kz';
+  const STORE_URL = 'http://localhost:3000/orders';
 
   // --- Состояния полей ---
   const [cardNumber, setCardNumber] = useState('');
