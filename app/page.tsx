@@ -17,6 +17,9 @@ function PaymentForm() {
   // URL твоего вебхука в n8n (Payment Processor)
   const N8N_WEBHOOK_URL = 'https://iq-home.kz/webhook/payment/process';
 
+    // URL твоего магазина (куда возвращать)
+  const STORE_URL = 'https://iq-home.kz';
+
   // --- Состояния полей ---
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -75,12 +78,13 @@ function PaymentForm() {
 
   // --- Отправка ---
 
-  const handlePayment = async (paymentStatus: 'success' | 'failed') => {
+    const handlePayment = async (paymentStatus: 'success' | 'failed') => {
     if (!orderId) return;
     setLoading(true);
 
     try {
-      await fetch(N8N_WEBHOOK_URL, {
+      // 1. Отправляем данные в n8n (чтобы обновить базу)
+      const response = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -89,18 +93,24 @@ function PaymentForm() {
         })
       });
 
+      if (!response.ok) throw new Error('Ошибка сервера');
+
+      // 2. Логика редиректа
       if (paymentStatus === 'success') {
         setStatus('success');
+        // Показываем галочку 2 секунды и редиректим в ЗАКАЗЫ
         setTimeout(() => {
-           window.location.href = returnUrl; 
+           window.location.href = `${STORE_URL}/profile`; // Или /orders, если есть такая страница
         }, 2000);
       } else {
-        setStatus('error');
-        setLoading(false);
+        // Если ошибка — сразу возвращаем в КОРЗИНУ
+        alert('Оплата не прошла. Возвращаем вас в корзину.');
+        window.location.href = `${STORE_URL}/cart`;
       }
+      
     } catch (e) {
       console.error(e);
-      alert('Ошибка соединения с платежным шлюзом');
+      alert('Не удалось связаться с магазином. Проверьте интернет.');
       setLoading(false);
     }
   };
