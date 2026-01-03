@@ -8,46 +8,39 @@ function PaymentForm() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const amount = searchParams.get('amount');
-  // Если returnUrl не передан, используем дефолтный (поменяй на свой домен магазина)
-  const returnUrl = searchParams.get('returnUrl') || 'https://iq-home.kz/user/orders';
 
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  // URL твоего вебхука в n8n (Payment Processor)
   const N8N_WEBHOOK_URL = 'https://iq-home.kz/webhook/payment/process';
 
-    // URL твоего магазина (куда возвращать)
-  const STORE_URL = 'http://localhost:3000';
+  const STORE_URL = 'https://apache.iq-home.kz';
 
-  // --- Состояния полей ---
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
   const [name, setName] = useState('');
   const [agreed, setAgreed] = useState(false);
 
-  // --- Валидаторы и Форматтеры ---
 
   const handleCardNumber = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Оставляем только цифры
+
     let val = e.target.value.replace(/\D/g, '');
-    // Обрезаем до 16 цифр
+
     val = val.slice(0, 16);
-    // Добавляем пробелы каждые 4 цифры
+
     val = val.replace(/(\d{4})/g, '$1 ').trim();
     setCardNumber(val);
   };
 
   const handleExpiry = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.replace(/\D/g, '');
-    // Обрезаем до 4 цифр (MMYY)
+
     val = val.slice(0, 4);
     
-    // Если ввели больше 2 цифр, ставим слеш
     if (val.length >= 2) {
       const month = parseInt(val.slice(0, 2));
-      // Простая проверка месяца (не больше 12)
+
       if (month > 12) val = '12' + val.slice(2);
       if (month === 0) val = '01' + val.slice(2);
       
@@ -57,33 +50,30 @@ function PaymentForm() {
   };
 
   const handleCvv = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Только цифры, макс 3
+
     const val = e.target.value.replace(/\D/g, '').slice(0, 3);
     setCvv(val);
   };
 
   const handleName = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Только латинские буквы и пробелы, авто-капс
+
     const val = e.target.value.replace(/[^a-zA-Z\s]/g, '').toUpperCase();
     setName(val);
   };
 
-  // Проверка валидности всей формы
   const isValid = 
-    cardNumber.length === 19 && // 16 цифр + 3 пробела
-    expiry.length === 5 &&      // MM/YY
+    cardNumber.length === 19 && 
+    expiry.length === 5 &&     
     cvv.length === 3 &&
     name.length > 2 &&
     agreed;
 
-  // --- Отправка ---
 
     const handlePayment = async (paymentStatus: 'success' | 'failed') => {
     if (!orderId) return;
     setLoading(true);
 
     try {
-      // 1. Отправляем данные в n8n (чтобы обновить базу)
       const response = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,10 +85,8 @@ function PaymentForm() {
 
       if (!response.ok) throw new Error('Ошибка сервера');
 
-      // 2. Логика редиректа
       if (paymentStatus === 'success') {
         setStatus('success');
-        // Показываем галочку 2 секунды и редиректим на страницу профиля заказа
         setTimeout(() => {
           if (!orderId) return;
           window.location.href = `${STORE_URL}/orders/${orderId}`;
@@ -116,7 +104,6 @@ function PaymentForm() {
     }
   };
 
-  // --- Рендер Ошибки / Успеха ---
 
   if (!orderId) return (
     <div className="flex h-screen items-center justify-center bg-gray-100 text-red-500 font-bold gap-2">
@@ -136,13 +123,12 @@ function PaymentForm() {
     );
   }
 
-  // --- Основная форма ---
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans text-gray-800">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden relative">
         
-        {/* Шапка */}
+        {/* Заголовок с суммой */}
         <div className="bg-[#1e293b] p-6 text-white text-center">
           <div className="flex justify-center items-center gap-2 mb-2 opacity-80">
             <Lock size={16} /> 
