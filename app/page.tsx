@@ -216,14 +216,6 @@ function PaymentForm() {
             >
               {loading ? <Loader className="animate-spin"/> : 'Оплатить'}
             </button>
-            
-            <button 
-              onClick={() => handlePayment('failed')}
-              disabled={loading}
-              className="w-full text-red-400 text-xs font-medium hover:text-red-600 hover:underline transition"
-            >
-              Эмулировать ошибку (Недостаточно средств)
-            </button>
           </div>
         </div>
 
