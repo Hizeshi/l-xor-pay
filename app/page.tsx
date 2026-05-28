@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { CreditCard, Lock, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
@@ -12,7 +12,7 @@ function PaymentForm() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  const N8N_WEBHOOK_URL = 'https://iq-home.kz/webhook/payment/process';
+  const N8N_WEBHOOK_URL = 'https://chat.iq-home.kz/api/payment/notify';
 
   const STORE_URL = 'https://apache.iq-home.kz';
 
