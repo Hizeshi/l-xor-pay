@@ -58,8 +58,8 @@ describe('Payment Webhook', () => {
       const parsed = JSON.parse(body);
       const keys = Object.keys(parsed);
 
-      expect(keys).toEqual(['order_id', 'status', 'tx_id']);
-      expect(parsed.order_id).toBe(123);
+      expect(keys).toEqual(['orderId', 'status', 'tx_id']);
+      expect(parsed.orderId).toBe(123);
       expect(parsed.status).toBe('success');
       expect(parsed.tx_id).toBe('txn_abc123');
     });
@@ -100,7 +100,7 @@ describe('Payment Webhook', () => {
       await sendPaymentWebhook(123, 'success', 'txn_abc');
 
       expect(fetchMock).toHaveBeenCalledWith(
-        'https://api.iq-home.kz/api/payment/webhook',
+        'https://chat.iq-home.kz/api/payment/webhook',
         expect.any(Object)
       );
 
@@ -167,6 +167,21 @@ describe('Payment Webhook', () => {
       await expect(
         sendPaymentWebhook(999, 'success', 'txn_abc')
       ).rejects.toThrow('Заказ не найден (404)');
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('должна корректно обрабатывать 409 Conflict без повтора', async () => {
+      const fetchMock = jest.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+      } as unknown as Response);
+
+      global.fetch = fetchMock;
+
+      await expect(
+        sendPaymentWebhook(123, 'success', 'txn_abc')
+      ).resolves.toBeUndefined();
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });

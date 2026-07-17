@@ -12,8 +12,7 @@ function PaymentForm() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  const N8N_WEBHOOK_URL = 'https://chat.iq-home.kz/api/payment/notify';
-
+  const CONFIRM_PAYMENT_URL = '/api/payment/confirm';
   const STORE_URL = 'https://apache.iq-home.kz';
 
   const [cardNumber, setCardNumber] = useState('');
@@ -69,21 +68,37 @@ function PaymentForm() {
     agreed;
 
 
-    const handlePayment = async (paymentStatus: 'success' | 'failed') => {
+    const createTxId = () => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return `txn_${crypto.randomUUID()}`;
+    }
+
+    return `txn_${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  };
+
+  const handlePayment = async (paymentStatus: 'success' | 'failed') => {
     if (!orderId) return;
     setLoading(true);
+    const txId = createTxId();
 
     try {
-      const response = await fetch(N8N_WEBHOOK_URL, {
+      const response = await fetch(CONFIRM_PAYMENT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: Number(orderId),
-          status: paymentStatus
-        })
+          status: paymentStatus,
+          txId,
+        }),
       });
 
-      if (!response.ok) throw new Error('Ошибка сервера');
+      if (!response.ok) {
+        const details = await response
+          .json()
+          .catch(() => ({ message: 'Ошибка сервера' }));
+
+        throw new Error(details.message || 'Ошибка сервера');
+      }
 
       if (paymentStatus === 'success') {
         setStatus('success');

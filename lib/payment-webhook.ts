@@ -27,9 +27,9 @@ function createPaymentBody(
   status: PaymentStatus,
   txId: string
 ): string {
-  // Фиксированный порядок ключей: order_id, status, tx_id
+  // Фиксированный порядок ключей: orderId, status, tx_id
   const body = {
-    order_id: orderId,
+    orderId: orderId,
     status: status,
     tx_id: txId,
   };
@@ -69,7 +69,7 @@ export async function sendPaymentWebhook(
     );
   }
 
-  const webhookUrl = 'https://api.iq-home.kz/api/payment/webhook';
+  const webhookUrl = 'https://chat.iq-home.kz/api/payment/webhook';
   const body = createPaymentBody(orderId, status, txId);
   const signature = calculateSignature(secret, body);
 
@@ -118,6 +118,14 @@ export async function sendPaymentWebhook(
           404,
           false
         );
+      }
+
+      // 409 - заказ уже не в статусе pending или уже обработан
+      if (response.status === 409) {
+        console.warn(
+          `Webhook declined with 409 Conflict for order ${orderId}, tx_id=${txId}. No retry needed.`
+        );
+        return;
       }
 
       // 500 - внутренняя ошибка (повторяем)
