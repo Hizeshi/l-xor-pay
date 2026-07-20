@@ -82,6 +82,12 @@ function PaymentForm() {
     const txId = createTxId();
 
     try {
+      // PAY-002: amount уже был в searchParams только для отображения
+      // пользователю ("{amount} ₸" в шапке) -- теперь передаём его и в
+      // подтверждение платежа, чтобы бэкенд rozetki.kz мог сверить сумму
+      // с реальной суммой заказа, а не доверять голому orderId+status.
+      const parsedAmount = amount ? Number(amount) : undefined;
+
       const response = await fetch(CONFIRM_PAYMENT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,6 +95,9 @@ function PaymentForm() {
           orderId: Number(orderId),
           status: paymentStatus,
           txId,
+          ...(parsedAmount !== undefined && !Number.isNaN(parsedAmount)
+            ? { amount: parsedAmount }
+            : {}),
         }),
       });
 

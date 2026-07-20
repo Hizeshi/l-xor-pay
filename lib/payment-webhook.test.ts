@@ -253,6 +253,77 @@ describe('Payment Webhook', () => {
       jest.useRealTimers();
     });
 
+    // PAY-002: amount/currency are optional additions -- omitting amount
+    // (existing 3-arg callers) must keep producing the exact old body shape.
+    it('без amount формирует тело без amount/currency (обратная совместимость)', async () => {
+      const fetchMock = jest.fn().mockResolvedValueOnce({
+        ok: true,
+      } as Response);
+
+      global.fetch = fetchMock;
+
+      await sendPaymentWebhook(123, 'success', 'txn_abc123');
+
+      const body = fetchMock.mock.calls[0][1]!.body as string;
+      const parsed = JSON.parse(body);
+
+      expect(Object.keys(parsed)).toEqual(['orderId', 'status', 'tx_id']);
+      expect(parsed.amount).toBeUndefined();
+      expect(parsed.currency).toBeUndefined();
+    });
+
+    it('с amount добавляет amount и жёсткую currency=KZT в тело и подпись', async () => {
+      const fetchMock = jest.fn().mockResolvedValueOnce({
+        ok: true,
+      } as Response);
+
+      global.fetch = fetchMock;
+
+      await sendPaymentWebhook(123, 'success', 'txn_abc123', 45000);
+
+      const body = fetchMock.mock.calls[0][1]!.body as string;
+      const parsed = JSON.parse(body);
+
+      expect(Object.keys(parsed)).toEqual([
+        'orderId',
+        'status',
+        'tx_id',
+        'amount',
+        'currency',
+      ]);
+      expect(parsed.amount).toBe(45000);
+      expect(parsed.currency).toBe('KZT');
+
+      // Signature must cover the new fields too -- it's computed over the
+      // exact body string, so this also proves amount/currency are inside
+      // what gets signed, not appended after.
+      const expectedSignature = crypto
+        .createHmac('sha256', testSecret)
+        .update(body)
+        .digest('hex');
+      const headers = fetchMock.mock.calls[0][1]!.headers as Record<
+        string,
+        string
+      >;
+      expect(headers['X-Payment-Signature']).toBe(expectedSignature);
+    });
+
+    it('explicit amount=0 всё равно добавляет amount/currency (0 отличается от "не передано")', async () => {
+      const fetchMock = jest.fn().mockResolvedValueOnce({
+        ok: true,
+      } as Response);
+
+      global.fetch = fetchMock;
+
+      await sendPaymentWebhook(123, 'success', 'txn_abc123', 0);
+
+      const body = fetchMock.mock.calls[0][1]!.body as string;
+      const parsed = JSON.parse(body);
+
+      expect(parsed.amount).toBe(0);
+      expect(parsed.currency).toBe('KZT');
+    });
+
     it('должна поддерживать оба статуса платежа', async () => {
       const fetchMock = jest.fn().mockResolvedValue({
         ok: true,

@@ -10,15 +10,19 @@ import { NextRequest, NextResponse } from 'next/server';
  * {
  *   "orderId": 123,
  *   "status": "success" | "failed",
- *   "txId": "txn_abc123"
+ *   "txId": "txn_abc123",
+ *   "amount": 45000
  * }
+ *
+ * amount необязателен (PAY-002 staged rollout, см. payment-webhook.ts) —
+ * старые вызовы без него по-прежнему работают, просто не несут сумму.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
     // Валидация полей
-    const { orderId, status, txId } = body;
+    const { orderId, status, txId, amount } = body;
 
     if (!orderId || typeof orderId !== 'number') {
       return NextResponse.json(
@@ -50,12 +54,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (amount !== undefined && typeof amount !== 'number') {
+      return NextResponse.json(
+        {
+          error: 'Invalid amount',
+          details: 'amount must be a number when provided',
+        },
+        { status: 400 }
+      );
+    }
+
     console.log(
       `[API] Confirming payment: orderId=${orderId}, status=${status}, txId=${txId}`
     );
 
     // Отправляем webhook на бэкенд
-    await sendPaymentWebhook(orderId, status as PaymentStatus, txId);
+    await sendPaymentWebhook(
+      orderId,
+      status as PaymentStatus,
+      txId,
+      amount as number | undefined
+    );
 
     console.log(
       `[API] ✓ Payment confirmed: orderId=${orderId}`

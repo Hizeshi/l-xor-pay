@@ -21,18 +21,28 @@ export class PaymentWebhookError extends Error {
 
 /**
  * Формирует JSON тело с фиксированным порядком ключей
+ *
+ * amount (в целых тенге, как и строит платёжную ссылку rozetki.kz) —
+ * необязателен: PAY-002, бэкенд rozetki.kz пока тоже трактует его как
+ * опциональный (0/отсутствие поля пропускает сверку с order total). Когда
+ * передан, currency жёстко "KZT" — во всей системе никогда не было
+ * мультивалютности.
  */
 function createPaymentBody(
   orderId: number,
   status: PaymentStatus,
-  txId: string
+  txId: string,
+  amount?: number
 ): string {
-  // Фиксированный порядок ключей: orderId, status, tx_id
-  const body = {
+  const body: Record<string, unknown> = {
     orderId: orderId,
     status: status,
     tx_id: txId,
   };
+  if (amount !== undefined) {
+    body.amount = amount;
+    body.currency = 'KZT';
+  }
 
   return JSON.stringify(body);
 }
@@ -52,12 +62,14 @@ function calculateSignature(secret: string, message: string): string {
  * @param orderId - ID заказа
  * @param status - статус платежа ('success' или 'failed')
  * @param txId - уникальный ID транзакции
+ * @param amount - сумма заказа в целых тенге (PAY-002, опционально)
  * @throws PaymentWebhookError при ошибке отправки или невалидном ответе
  */
 export async function sendPaymentWebhook(
   orderId: number,
   status: PaymentStatus,
-  txId: string
+  txId: string,
+  amount?: number
 ): Promise<void> {
   const secret = process.env.PAYMENT_WEBHOOK_SECRET;
 
@@ -70,7 +82,7 @@ export async function sendPaymentWebhook(
   }
 
   const webhookUrl = 'https://chat.iq-home.kz/api/payment/webhook';
-  const body = createPaymentBody(orderId, status, txId);
+  const body = createPaymentBody(orderId, status, txId, amount);
   const signature = calculateSignature(secret, body);
 
   const maxRetries = 3;
